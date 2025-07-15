@@ -43,3 +43,11 @@ chatting_platform/
 │   └── package.json
 └── README.md
 ```
+
+# Contributions
+
+Pull requests welcome! If you wish to suggest improvements or fix bugs, feel free to open an issue.
+
+# License
+
+MIT License
