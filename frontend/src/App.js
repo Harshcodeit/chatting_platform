@@ -44,10 +44,10 @@ function App() {
 
               {/* Welcome Text */}
               <Card.Title className="welcome-title mb-3">
-                Welcome to Chatty
+                Welcome to ChatZone
               </Card.Title>
               <Card.Text className="welcome-subtitle text-muted mb-4">
-                Chat with your friends, share photos and videos they talk with right away.
+                Chat with your friends or match with people anonymously.
               </Card.Text>
 
               {/* Progress Dots */}
