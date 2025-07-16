@@ -4,16 +4,16 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { FirebaseContextProvider } from './Firebase/Firebase';
-import {BrowserRouters} from "react-router-dom"
+import {BrowserRouter} from "react-router-dom"
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <BrowserRouters>
+    <BrowserRouter>
       <FirebaseContextProvider>
         <App />
       </FirebaseContextProvider>
-    </BrowserRouters>
+    </BrowserRouter>
   </React.StrictMode>
 );
 
