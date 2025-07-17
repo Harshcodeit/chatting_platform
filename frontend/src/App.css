@@ -223,3 +223,21 @@ body {
     font-size: 13px;
   }
 }
+.chat-container{
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.chat-window{
+  width: 100%;
+  max-width: 1200px;
+  height: 90vh;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
