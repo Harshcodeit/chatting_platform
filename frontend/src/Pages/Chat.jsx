@@ -205,12 +205,12 @@ function Chat(){
               </div>
             </div>
             <div className="d-flex gap-2">
-              <Button variant="outline-primary" size="sm">
+              {/* <Button variant="outline-primary" size="sm">
                 <Phone size={16} />
-              </Button>
-              <Button variant="outline-primary" size="sm">
+              </Button> */}
+              {/* <Button variant="outline-primary" size="sm">
                 <Video size={16} />
-              </Button>
+              </Button> */}
               <Dropdown>
                 <Dropdown.Toggle variant="outline-secondary" size="sm">
                   <MoreVertical size={16} />
