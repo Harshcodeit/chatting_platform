@@ -1,8 +1,25 @@
+import React, { useEffect, useState } from "react";
+
+//firebase
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { createContext, useContext } from "react";
-import { getAuth } from "firebase/auth"
-import { getDatabase } from "firebase/database";
+
+//authentication
+import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    GoogleAuthProvider,
+    signInWithPopup,
+    onAuthStateChanged
+}
+from "firebase/auth"
+
+//database
+import{
+    getDatabase
+}
+from "firebase/database"
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -14,18 +31,50 @@ const firebaseConfig = {
   measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
-const app = initializeApp(firebaseConfig)
-const analytics = getAnalytics(app)
+const firebaseApp = initializeApp(firebaseConfig)
+const firebaseAuth = getAuth(firebaseApp)
+const googleProvider=new GoogleAuthProvider()
 
-const firebaseAuth = getAuth(app)
-const database = getDatabase(app)
+const database = getDatabase(firebaseApp)
+
 
 const FirebaseContext = createContext(null)
 export const useFirebase = () => useContext(FirebaseContext)
 
 export const FirebaseContextProvider = (props) => {
+    const [user,setUser]=useState(null)
+
+    useEffect(()=>{
+        onAuthStateChanged(firebaseAuth,(user)=>{
+            if(user) setUser(user)
+                else setUser(null)
+        })
+    },[])
+
+    //sign in
+    const signupUserWithEmailAndPassword=(email,password)=>{
+        createUserWithEmailAndPassword(firebaseAuth,email,password)
+    }
+
+    //login via email
+    const signinUserWithEmailAndPassword=(email,password)=>{
+        signInWithEmailAndPassword(firebaseAuth,email,password)
+    }
+
+    //login via google account
+    const signinWithGoogle=()=>{
+        signInWithPopup(firebaseConfig,googleProvider)
+    }
+
+    const isLoggedIn = user? true : false
+    
     return(
-        <FirebaseContext.Provider value={{ firebaseAuth, database, analytics }}>
+        <FirebaseContext.Provider 
+        value={{ 
+            signupUserWithEmailAndPassword,
+            signinUserWithEmailAndPassword,
+            signinWithGoogle
+            }}>
             {props.children}
         </FirebaseContext.Provider>
     )
