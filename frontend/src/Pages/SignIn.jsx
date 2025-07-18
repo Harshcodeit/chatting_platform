@@ -1,35 +1,62 @@
-import { useState } from "react"
+import React from "react"
+
+//hooks
+import { useState ,useEffect } from "react"
+
+//bootstrap
 import { Container, Card, Form, Button, Row, Col, Alert } from "react-bootstrap"
+
+//routing
 import { Link, useNavigate} from "react-router-dom"
 
-function SignIn(){
-    const [formData,setFormData]=useState({
-        email:'',
-        password:''
-    })
+//firebase
+import { useFirebase } from "../Firebase/Firebase"
+
+const SignIn=()=>{
+    const firebase=useFirebase()
+    const [email,setEmail]=useState("")
+    const [password,setPassword]=useState("")
+    const navigate=useNavigate()
+    
     const [error,setError]=useState('')
     const [loading,setLoading]=useState(false)
-    const navigate=useNavigate()
-
-    const handleChange=(e)=>{
-        setFormData({
-            ...formData,
-            [e.target.name]:e.target.value
-        })
-    }
+    
+    useEffect(()=>{
+      if(firebase.isLoggedIn){
+        navigate('/chat')
+      }
+    },[firebase.isLoggedIn,navigate])
     const handleSubmit=async (e)=>{
-        e.preventDefault();
+        e.preventDefault();//stops default behaviour
         setError('')
         setLoading(true)
 
         try{
-            console.log('Sign in attempt:',formData)
+            console.log('Sign in attempt:',{email,password})
+            console.log("Signing in user")
+            await firebase.signinUserWithEmailAndPassword(email,password)
+            console.log("Success")
             navigate('/chat')
         } catch(error){
             setError(error.message)
         } finally{
             setLoading(false)
         }
+    }
+    const handleGoogleSignIn=async()=>{
+      setError('')
+      setLoading(true)
+      try{
+        console.log("Signing in with google")
+        await firebase.signinWithGoogle()
+        console.log("Google Sign in succesful!")
+        navigate('/chat')
+      } catch(error){
+        setError(error.message)
+      } finally{
+        setLoading(false)
+      }
+      
     }
     return (
     <Container fluid className="app-container">
@@ -50,8 +77,8 @@ function SignIn(){
                   <Form.Control
                     type="email"
                     name="email"
-                    value={formData.email}
-                    onChange={handleChange}
+                    value={email}
+                    onChange={(e)=>setEmail(e.target.value)}
                     placeholder="Enter your email"
                     required
                   />
@@ -62,8 +89,8 @@ function SignIn(){
                   <Form.Control
                     type="password"
                     name="password"
-                    value={formData.password}
-                    onChange={handleChange}
+                    value={password}
+                    onChange={(e)=>setPassword(e.target.value)}
                     placeholder="Enter your password"
                     required
                   />
@@ -79,6 +106,17 @@ function SignIn(){
                 </Button>
               </Form>
 
+              <div className="text-center mb-3">
+                  <p className="mb-2">or</p>
+                  <Button
+                      variant="outline-dark"
+                      className="w-100"
+                      onClick={handleGoogleSignIn}
+                      disabled={loading}
+                  >
+                      {loading ? 'Signing In...' : 'Sign In with Google'}
+                  </Button>
+              </div>
               <div className="text-center">
                 <p className="mb-0">
                   Don't have an account?{' '}

@@ -2,12 +2,25 @@ import React from "react";
 import { useState } from "react";
 import { Container, Card, Form, Button, Row, Col, Badge, Dropdown } from "react-bootstrap"
 import { Search ,Send,MoreVertical,Pin,Phone,Video} from "lucide-react"
+import { useFirebase } from "../Firebase/Firebase";
+
+import { useNavigate } from "react-router-dom";
 
 function Chat(){
+    const firebase=useFirebase();
     const [selectedChat,setSelectedChat]=useState('Marry Maguire')
     const [message,setMessage]=useState('')
     const [activeTab,setActiveTab]=useState('All')
+    const navigate=useNavigate()
 
+    const handleLogout=async()=>{
+      try{
+        await firebase.logout();
+        navigate('/')
+      } catch(error){
+        console.error("Logout failed:",error)
+      }
+    }
     const conversations=[
     {
       id: 1,
@@ -107,13 +120,12 @@ function Chat(){
             <div className="p-3 border-bottom bg-white">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5 className="mb-0 fw-bold">Messages</h5>
-                <Button variant="outline-primary" size="sm">
-                  <Search size={16} />
-                </Button>
+                <Button variant="outline-danger" size="sm" onClick={handleLogout}>Logout</Button>
               </div>
               
               {/* Tabs */}
-              <div className="d-flex gap-3">
+              <div className="d-flex gap-3 justify-content-between align-items-center">
+                <div className="d-flex gap-2">
                 {['All', 'Personal', 'Groups'].map(tab => (
                   <button
                     key={tab}
@@ -123,6 +135,10 @@ function Chat(){
                     {tab}
                   </button>
                 ))}
+                </div>
+                <Button variant="outline-primary" size="sm">
+                  <Search size={16}/>
+                </Button>
               </div>
             </div>
 

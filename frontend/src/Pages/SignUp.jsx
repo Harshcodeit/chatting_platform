@@ -1,53 +1,64 @@
-import React, { useState } from 'react';
-import { Container, Card, Form, Button, Row, Col, Alert } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import React from "react"
 
-function SignUp() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+//hooks
+import { useState ,useEffect } from "react"
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
+//bootstrap
+import { Container, Card, Form, Button, Row, Col, Alert } from "react-bootstrap"
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+//routing
+import { Link, useNavigate} from "react-router-dom"
 
-    // Validate passwords match
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+//firebase
+import { useFirebase } from "../Firebase/Firebase"
+
+const SignUp=()=>{
+    const firebase=useFirebase()
+    const [email,setEmail]=useState("")
+    const [password,setPassword]=useState("")
+    const navigate=useNavigate()
+    
+    const [error,setError]=useState('')
+    const [loading,setLoading]=useState(false)
+    
+    useEffect(()=>{
+      if(firebase.isLoggedIn){
+        navigate('/chat')
+      }
+    },[firebase.isLoggedIn,navigate])
+    const handleSubmit=async (e)=>{
+        e.preventDefault();//stops default behaviour
+        setError('')
+        setLoading(true)
+
+        try{
+            console.log('Sign up attempt:',{email,password})
+            console.log("Signed up in user")
+            await firebase.signupUserWithEmailAndPassword(email,password)
+            console.log("Success")
+            navigate('/chat')
+        } catch(error){
+            setError(error.message)
+        } finally{
+            setLoading(false)
+        }
     }
-
-    setLoading(true);
-
-    try {
-      // Add your Firebase sign up logic here
-      console.log('Sign up attempt:', formData);
+    const handleGoogleSignUp=async()=>{
+      setError('')
+      setLoading(true)
+      try{
+        console.log("Sign up with google")
+        await firebase.signinWithGoogle()
+        console.log("Google Sign up succesful!")
+        navigate('/chat')
+      } catch(error){
+        setError(error.message)
+      } finally{
+        setLoading(false)
+      }
       
-      // Example: await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      
-      // On success, navigate to chat
-      navigate('/chat');
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
     }
-  };
-
-  return (
+    return (
     <Container fluid className="app-container">
       <Row className="justify-content-center align-items-center min-vh-100">
         <Col xs={12} sm={10} md={8} lg={6} xl={4}>
@@ -55,31 +66,19 @@ function SignUp() {
             <Card.Body className="p-4">
               <div className="text-center mb-4">
                 <h2 className="auth-title">Sign Up</h2>
-                <p className="text-muted">Join ChatZone today!</p>
+                <p className="text-muted">Welcome back to ChatZone!</p>
               </div>
 
               {error && <Alert variant="danger">{error}</Alert>}
 
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Full Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Enter your full name"
-                    required
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
                   <Form.Label>Email</Form.Label>
                   <Form.Control
                     type="email"
                     name="email"
-                    value={formData.email}
-                    onChange={handleChange}
+                    value={email}
+                    onChange={(e)=>setEmail(e.target.value)}
                     placeholder="Enter your email"
                     required
                   />
@@ -90,21 +89,9 @@ function SignUp() {
                   <Form.Control
                     type="password"
                     name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Create a password"
-                    required
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Confirm Password</Form.Label>
-                  <Form.Control
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="Confirm your password"
+                    value={password}
+                    onChange={(e)=>setPassword(e.target.value)}
+                    placeholder="Enter your password"
                     required
                   />
                 </Form.Group>
@@ -115,10 +102,21 @@ function SignUp() {
                   disabled={loading}
                   size="lg"
                 >
-                  {loading ? 'Creating Account...' : 'Sign Up'}
+                  {loading ? 'Signing Up...' : 'Sign Up'}
                 </Button>
               </Form>
 
+              <div className="text-center mb-3">
+                  <p className="mb-2">or</p>
+                  <Button
+                      variant="outline-dark"
+                      className="w-100"
+                      onClick={handleGoogleSignUp}
+                      disabled={loading}
+                  >
+                      {loading ? 'Signing Up...' : 'Sign Up with Google'}
+                  </Button>
+              </div>
               <div className="text-center">
                 <p className="mb-0">
                   Already have an account?{' '}
@@ -134,5 +132,4 @@ function SignUp() {
     </Container>
   );
 }
-
-export default SignUp;
+export default SignUp
