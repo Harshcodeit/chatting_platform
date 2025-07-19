@@ -109,7 +109,7 @@ const SignIn=()=>{
               <div className="text-center mb-3">
                   <p className="mb-2">or</p>
                   <Button
-                      variant="outline-dark"
+                      variant="success"
                       className="w-100"
                       onClick={handleGoogleSignIn}
                       disabled={loading}
