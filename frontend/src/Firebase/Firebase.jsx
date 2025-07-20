@@ -160,7 +160,7 @@ export const FirebaseContextProvider = (props) => {
                 lastMessage:messageText.trim(),
                 lastMessageTime:serverTimestamp(),
                 lastMessageSender:user.uid,
-                participants:receiverId ? [user.uid,receiverId] : null
+                participants:receiverId ? [user.uid,receiverId] : [user.uid]
             }
             await set(ref(database,`chats/${chatId}`),chatData)
         } catch(error){
