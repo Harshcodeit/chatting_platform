@@ -16,25 +16,97 @@ const SignUp=()=>{
     const firebase=useFirebase()
     const [email,setEmail]=useState("")
     const [password,setPassword]=useState("")
+    const [userName,setUserName]=useState("")
+    const [confirmPassword,setConfirmPassword]=useState('')
     const navigate=useNavigate()
     
     const [error,setError]=useState('')
     const [loading,setLoading]=useState(false)
+    const [usernameAvailable,setUserNameAvailable]=useState(null)
+    const [checkingUsername,setCheckingUsername]=useState(false)
     
     useEffect(()=>{
       if(firebase.isLoggedIn){
         navigate('/chat')
       }
     },[firebase.isLoggedIn,navigate])
+
+    //check username availability
+    const checkUsernameAvailability=async(username)=>{
+      if(!username || username.length<3){
+        setUserNameAvailable(null)
+        return
+      }
+      setCheckingUsername(true)
+      try{
+        const exists=await firebase.checkUsernameExists(username)
+        setUserNameAvailable(!exists)
+      }
+      catch(error){
+        console.error("Error checking username:",error)
+        setUserNameAvailable(null)
+      }
+      finally{
+        setCheckingUsername(false)
+      }
+    }
+
+    //Debounded username check
+    useEffect(()=>{
+      const timeoutId=setTimeout(()=>{
+        if(userName){
+          checkUsernameAvailability(userName)
+        }
+      },500)
+      return ()=>clearInterval(timeoutId)
+    },[userName])
+
+    const validateForm=()=>{
+      if(!userName.trim()){
+        setError("Username is required")
+        return false
+      }
+      if(userName.length<3){
+        setError("Username must be atleast 3 characters long")
+        return false
+      }
+      if(!/^[a-zA-Z0-9_]+$/.test(userName)){
+        setError("Username can only contain letters,numbers and underscores")
+      }
+      if(!email.trim()){
+        setError("Email is required")
+        return false
+      }
+      if(!password.trim()){
+        setError("Password is required")
+        return false
+      }
+      if(password.length<6){
+        setError("Password must be atleast 6 characters long.")
+        return false
+      }
+      if(password!==confirmPassword){
+        setError("Passwords do not match")
+        return false
+      }
+      if(usernameAvailable===false){
+        setError("Username is already taken")
+        return false
+      }
+      return true
+    }
+
     const handleSubmit=async (e)=>{
         e.preventDefault();//stops default behaviour
         setError('')
+
+        if(!validateForm()) return
         setLoading(true)
 
         try{
-            console.log('Sign up attempt:',{email,password})
+            console.log('Sign up attempt:',{email,password,userName})
             console.log("Signed up in user")
-            await firebase.signupUserWithEmailAndPassword(email,password)
+            await firebase.signupUserWithEmailAndPassword(email,password,userName)
             console.log("Success")
             navigate('/chat')
         } catch(error){
@@ -55,8 +127,25 @@ const SignUp=()=>{
         setError(error.message)
       } finally{
         setLoading(false)
-      }
-      
+      } 
+    }
+    const getUsernameValidationColor = () => {
+      if (checkingUsername) return "text-info"
+      if (usernameAvailable === true) return "text-success"
+      if (usernameAvailable === false) return "text-danger"
+      if (userName && userName.length < 3) return "text-warning"
+      if (userName && !/^[a-zA-Z0-9_]+$/.test(userName)) return "text-danger"
+      return "text-muted"
+    }
+
+    const getUsernameValidationMessage=()=>{
+      if (!userName) return null
+      if (userName.length < 3) return "Username must be at least 3 characters"
+      if (!/^[a-zA-Z0-9_]+$/.test(userName)) return "Only letters, numbers, and underscores allowed"
+      if (checkingUsername) return "Checking availability..."
+      if (usernameAvailable === true) return "Username is available!"
+      if (usernameAvailable === false) return "Username is already taken"
+      return null
     }
     return (
     <Container fluid className="app-container">
@@ -72,6 +161,22 @@ const SignUp=()=>{
               {error && <Alert variant="danger">{error}</Alert>}
 
               <Form onSubmit={handleSubmit}>
+                <Form.Group className="mb-3">
+                  <Form.Label>UserName</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="userName"
+                    value={userName}
+                    onChange={(e)=>setUserName(e.target.value)}
+                    placeholder="Enter your username"
+                    required
+                    isValid={usernameAvailable===true}
+                    isInvalid={usernameAvailable===false || (userName && userName.length < 3) || (userName && !/^[a-zA-Z0-9_]+$/.test(userName))}  
+                  />
+                  <Form.Text className={getUsernameValidationColor()}>
+                      {getUsernameValidationMessage()}
+                  </Form.Text>
+                </Form.Group>
                 <Form.Group className="mb-3">
                   <Form.Label>Email</Form.Label>
                   <Form.Control
@@ -93,13 +198,35 @@ const SignUp=()=>{
                     onChange={(e)=>setPassword(e.target.value)}
                     placeholder="Enter your password"
                     required
+                    minLength={6}
                   />
+                  <Form.Text className="text-muted">
+                      Password must be at least 6 characters long
+                  </Form.Text>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                    <Form.Label>Confirm Password</Form.Label>
+                    <Form.Control
+                        type="password"
+                        name="confirmPassword"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm your password"
+                        required
+                        isInvalid={confirmPassword && password !== confirmPassword}
+                    />
+                    {confirmPassword && password !== confirmPassword && (
+                        <Form.Text className="text-danger">
+                            Passwords do not match
+                        </Form.Text>
+                    )}
                 </Form.Group>
 
                 <Button 
                   className="w-100 mb-3" 
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || usernameAvailable===false || checkingUsername}
                   size="lg"
                 >
                   {loading ? 'Signing Up...' : 'Sign Up'}

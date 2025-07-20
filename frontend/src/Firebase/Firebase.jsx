@@ -13,6 +13,7 @@ import {
     signInWithPopup,
     onAuthStateChanged,
     signOut,
+    updateProfile,
 }
 from "firebase/auth"
 
@@ -27,6 +28,8 @@ import{
     serverTimestamp,
     orderByChild,
     query,
+    equalTo,
+    get,
 }
 from "firebase/database"
 
@@ -59,29 +62,88 @@ export const FirebaseContextProvider = (props) => {
                 else setUser(null)
         })
     },[])
+    
+    //check if username already exists
+    const checkUserNameExists=async(username)=>{
+        try{
+            const usernameRef=query(
+                ref(database,'usernames'),
+                orderByChild('username'),
+                equalTo(username.toLowerCase())
+            )
+            const snapshot=await get(usernameRef)
+            return snapshot.exists()
+        }
+        catch(error){
+            console.error("Error checking username:",error)
+            throw error
+        }
+    }
+
+    //find user by username
+    const findUserByUsername=async(username)=>{
+        try{
+            const usernameRef=query(
+                ref(database,'usernames'),
+                orderByChild('username'),
+                equalTo(username.toLowerCase())
+            )
+            const snapshot=await get(usernameRef)
+            if(snapshot.exists()){
+                const data=snapshot.val()
+                const userId=Object.keys(data)[0]
+                return data[userId].email
+            }
+        }
+        catch(error){
+            console.error("Error finding user by username:",error)
+            throw error
+        }
+    }
 
     //add user to db
-    const addUserToDb = async (user)=>{
+    const addUserToDb = async (user,username=null)=>{
         try{
+            const displayName=username || user.displayName || user.email.split('@')[0]
+
+            //update firebase auth profile
+            await updateProfile(user,{
+                displayName:displayName
+            })
             await set(ref(database,`users/${user.uid}`),{
                 uid:user.uid,
                 email:user.email,
-                displayName:user.database || user.email.split('@')[0],
+                displayName:displayName,
+                username:username?username.toLowerCase():null,
                 createdAt:serverTimestamp(),
                 lastLoginAt:serverTimestamp(),
                 isOnline:true,
             })
+            if(username){
+                await set(ref(database,`usernames/${user.uid}`),{
+                    username:username.toLowerCase(),
+                    email:user.email,
+                    uid:user.uid,
+                })
+            }
             console.log("User added to database succesfully")
         } catch(error){
             console.log("Error adding user to database:",error)
             throw error
         }
     }
-    //sign up
-    const signupUserWithEmailAndPassword= async(email,password)=>{
+    //sign up with username,email and password
+    const signupUserWithEmailAndPassword= async(email,password,username)=>{
         try{
+            //if username exists already
+            if(username){
+                const usernameExists=await checkUserNameExists(username)
+                if(usernameExists){
+                    throw new Error("Username already exists.Please choose a different username")
+                }
+            }
             const result=await createUserWithEmailAndPassword(firebaseAuth,email,password)
-            await addUserToDb(result.user)
+            await addUserToDb(result.user,username)
             return result
         } catch(error){
             console.log("Error signin up:",error)
@@ -89,9 +151,19 @@ export const FirebaseContextProvider = (props) => {
         }
     }
 
-    //login via email
-    const signinUserWithEmailAndPassword= async(email,password)=>{
+    //login via email/username and password
+    const signinUserWithEmailAndPassword= async(emailOrUsername,password)=>{
         try{
+            let email=emailOrUsername
+
+            //check if its a username(doesnt contain @)
+            if(!emailOrUsername.includes('@')){ //if it doesnt contain @
+                const foundEmail=findUserByUsername(emailOrUsername)
+                if(!foundEmail){
+                    throw new Error("Username not found")
+                }
+                email=foundEmail
+            }
             const result= await signInWithEmailAndPassword(firebaseAuth,email,password)
 
             //update last login time & online status
@@ -272,6 +344,9 @@ export const FirebaseContextProvider = (props) => {
             listenToChats,
             listenToUsers,
             generateChatId,
+            //username function
+            checkUserNameExists,
+            findUserByUsername,
             }}>
             {props.children}
         </FirebaseContext.Provider>

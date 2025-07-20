@@ -14,7 +14,7 @@ import { useFirebase } from "../Firebase/Firebase"
 
 const SignIn=()=>{
     const firebase=useFirebase()
-    const [email,setEmail]=useState("")
+    const [emailOrUsername,setEmailOrUsername]=useState("")
     const [password,setPassword]=useState("")
     const navigate=useNavigate()
     
@@ -26,21 +26,38 @@ const SignIn=()=>{
         navigate('/chat')
       }
     },[firebase.isLoggedIn,navigate])
+
     const handleSubmit=async (e)=>{
         e.preventDefault();//stops default behaviour
         setError('')
         setLoading(true)
 
         try{
-            console.log('Sign in attempt:',{email,password})
-            console.log("Signing in user")
-            await firebase.signinUserWithEmailAndPassword(email,password)
-            console.log("Success")
-            navigate('/chat')
-        } catch(error){
-            setError(error.message)
-        } finally{
-            setLoading(false)
+          console.log('Sign in attempt:',{emailOrUsername,password})
+          console.log("Signing in user")
+          await firebase.signinUserWithEmailAndPassword(emailOrUsername,password)
+          console.log("Sign in successful")
+          navigate('/chat')
+        } 
+        catch(error){
+          //more user friendly error messages
+          let errorMessage=error.message
+          if (error.message.includes('user-not-found') || error.message.includes('Username not found')) {
+            errorMessage = 'No account found with this email or username'
+          } 
+          else if (error.message.includes('wrong-password')) {
+            errorMessage = 'Incorrect password'
+          } 
+          else if (error.message.includes('invalid-email')) {
+            errorMessage = 'Please enter a valid email address'
+          } 
+          else if (error.message.includes('too-many-requests')) {  
+            errorMessage = 'Too many failed login attempts. Please try again later'
+          }
+          setError(errorMessage)
+        } 
+        finally{
+          setLoading(false)
         }
     }
     const handleGoogleSignIn=async()=>{
@@ -51,13 +68,23 @@ const SignIn=()=>{
         await firebase.signinWithGoogle()
         console.log("Google Sign in succesful!")
         navigate('/chat')
-      } catch(error){
+      } 
+      catch(error){
         setError(error.message)
-      } finally{
+      } 
+      finally{
         setLoading(false)
       }
-      
     }
+    
+    const getPlaceholderText=()=>{
+      return "Enter your email or username"
+    }
+
+    const getInputType=()=>{
+      return emailOrUsername.includes('@') ? 'email' : 'text'
+    }
+
     return (
     <Container fluid className="app-container">
       <Row className="justify-content-center align-items-center min-vh-100">
@@ -75,13 +102,16 @@ const SignIn=()=>{
                 <Form.Group className="mb-3">
                   <Form.Label>Email</Form.Label>
                   <Form.Control
-                    type="email"
-                    name="email"
-                    value={email}
-                    onChange={(e)=>setEmail(e.target.value)}
-                    placeholder="Enter your email"
+                    type={getInputType()}
+                    name={emailOrUsername}
+                    value={emailOrUsername}
+                    onChange={(e)=>setEmailOrUsername(e.target.value)}
+                    placeholder={getPlaceholderText()}
                     required
                   />
+                  <Form.Text className="text-muted">
+                    *You can sign in with either your email address or username
+                  </Form.Text>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
