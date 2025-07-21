@@ -30,6 +30,8 @@ import{
     query,
     equalTo,
     get,
+    remove,
+    update,
 }
 from "firebase/database"
 
@@ -158,7 +160,7 @@ export const FirebaseContextProvider = (props) => {
 
             //check if its a username(doesnt contain @)
             if(!emailOrUsername.includes('@')){ //if it doesnt contain @
-                const foundEmail=findUserByUsername(emailOrUsername)
+                const foundEmail=await findUserByUsername(emailOrUsername)
                 if(!foundEmail){
                     throw new Error("Username not found")
                 }
@@ -170,7 +172,8 @@ export const FirebaseContextProvider = (props) => {
             await set(ref(database,`users/${result.user.uid}/lastLoginAt`),serverTimestamp())
             await set(ref(database,`users/${result.user.uid}/isOnline`),true)
             return result
-        } catch(error){
+        } 
+        catch(error){
             console.log("Error signing in:",error)
             throw error
         }
@@ -219,6 +222,7 @@ export const FirebaseContextProvider = (props) => {
                 senderName:user.displayName || user.email.split('@')[0],
                 senderEmail:user.email,
                 message:messageText.trim(),
+                isDeleted:false,
                 timeStamp:serverTimestamp(),
                 chatId:chatId,
                 receiverId:receiverId
@@ -326,6 +330,49 @@ export const FirebaseContextProvider = (props) => {
         })
         return ()=>off(chatsRef,'value',unsubscribe)
     }
+    
+    //hard delete chats
+    const deleteChat=async(chatId)=>{
+        try{
+            await remove(ref(database,`chats/${chatId}`))
+            console.log("Chat deleted!")
+
+            //deleted messages of this chat(optional)
+            const messageRef=query(
+                ref(database,'messages'),
+                orderByChild('chatId'),
+                equalTo(chatId)
+            )
+            const snapshot=await get(messageRef)
+            if(snapshot.exists()){
+                const messageData=snapshot.val()
+                const updates={}
+                Object.keys(messageData).forEach((messageId)=>{
+                    updates[`messages/${messageId}`]=null
+                })
+                await update(ref(database,'messages'),updates)
+            }
+            console.log("Chat and messages deleted succesfully")
+        }
+        catch(error){
+            console.error("Failed to delete chat:",error)
+            throw error
+        }
+    }
+
+    //soft delete message-(delete for me)
+    const deleteMessage=async(messageId)=>{
+        try{
+            await update(ref(database,`messages/${messageId}`),{
+                isDeleted:true,
+                message:"This message was deleted"
+            })
+            console.log("This message was deleted")
+        }
+        catch(error){
+            console.error("Failed to delete message:",error)
+        }
+    }
 
     const isLoggedIn = user? true : false
     
@@ -338,15 +385,20 @@ export const FirebaseContextProvider = (props) => {
             logout,
             isLoggedIn,
             user,
+
             //chat functions
             sendMessage,
             listenToMessages,
             listenToChats,
             listenToUsers,
             generateChatId,
-            //username function
+
+            //username functions
             checkUserNameExists,
             findUserByUsername,
+            //delete functions
+            deleteChat,
+            deleteMessage
             }}>
             {props.children}
         </FirebaseContext.Provider>

@@ -100,7 +100,7 @@ const SignIn=()=>{
 
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Email</Form.Label>
+                  <Form.Label>Email/Username</Form.Label>
                   <Form.Control
                     type={getInputType()}
                     name={emailOrUsername}

@@ -44,6 +44,9 @@ chatting_platform/
 └── README.md
 ```
 
+# Future Improvements
+Add encryption for messages
+
 # Contributions
 
 Pull requests welcome! If you wish to suggest improvements or fix bugs, feel free to open an issue.

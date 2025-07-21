@@ -133,7 +133,7 @@ function Chat(){
     )
 
     const getDisplayName=(user)=>{
-      return user?.displayName || user?.email?.split('@')[0] || 'Unknown User'
+      return user?.username || user?.displayName || user?.email?.split('@')[0] || 'Unknown User'
     }
 
     const getChatDisplayInfo=(chat)=>{
@@ -292,9 +292,19 @@ function Chat(){
                                                 <MoreVertical size={16} />
                                             </Dropdown.Toggle>
                                             <Dropdown.Menu>
-                                                <Dropdown.Item>View Profile</Dropdown.Item>
-                                                <Dropdown.Item>Clear Chat</Dropdown.Item>
-                                                <Dropdown.Item className="text-danger">Block User</Dropdown.Item>
+                                                <Dropdown.Item
+                                                    onClick={async ()=>{
+                                                        if(window.confirm("Are you sure you want to delete this chat?")){
+                                                            await firebase.deleteChat(selectedChat)
+                                                            setSelectedChat(null)
+                                                            setSelectedUser(null)
+                                                            SetMessages([])
+                                                        }
+                                                    }}
+                                                    className="text-danger"
+                                                >
+                                                    Delete Chat
+                                                </Dropdown.Item>
                                             </Dropdown.Menu>
                                         </Dropdown>
                                     </div>
@@ -332,7 +342,23 @@ function Chat(){
                                                             className={`p-3 rounded-3 ${isOwn ? 'bg-primary text-white' : 'bg-white'}`}
                                                             style={{ maxWidth: '70%', display: 'inline-block' }}
                                                         >
-                                                            {msg.message}
+                                                            {msg.isDeleted? (
+                                                                <i className="text-muted">This message was deleted</i>
+                                                            ) :(
+                                                                <>
+                                                                    {msg.message}
+                                                                    {isOwn && (
+                                                                        <Button
+                                                                            variant="link"
+                                                                            size="sm"
+                                                                            className="text-danger p-0 ms-2"
+                                                                            onClick={()=>firebase.deleteMessage(msg.id)}
+                                                                        >
+                                                                            Delete
+                                                                        </Button>
+                                                                    )}
+                                                                </>
+                                                            )} 
                                                         </div>
                                                         <div className="small text-muted mt-1">
                                                             {formatTime(msg.timestamp)}
