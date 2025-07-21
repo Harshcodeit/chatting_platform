@@ -85,7 +85,7 @@ function Chat(){
         setChats([])
         SetMessages([])
         setUsers([])
-        navigate('/signup')
+        navigate('/')
       } catch(error){
         console.error("Logout failed:",error)
       }

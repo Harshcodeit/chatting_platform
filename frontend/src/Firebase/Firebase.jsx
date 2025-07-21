@@ -153,6 +153,18 @@ export const FirebaseContextProvider = (props) => {
         }
     }
 
+    //helper function to check if user exists in db
+    const checkUserExistsInDb=async(uid)=>{
+        try{
+            const snapshot=await get(ref(database,`users${uid}`))
+            return snapshot.exists() && snapshot.val().email
+        }
+        catch(error){
+            console.error("Error checking user exists:",error)
+            return false
+        }
+    }
+
     //login via email/username and password
     const signinUserWithEmailAndPassword= async(emailOrUsername,password)=>{
         try{
@@ -168,9 +180,17 @@ export const FirebaseContextProvider = (props) => {
             }
             const result= await signInWithEmailAndPassword(firebaseAuth,email,password)
 
-            //update last login time & online status
-            await set(ref(database,`users/${result.user.uid}/lastLoginAt`),serverTimestamp())
-            await set(ref(database,`users/${result.user.uid}/isOnline`),true)
+            const userExists=checkUserExistsInDb(result.user.uid)
+            if(!userExists){
+                    console.log("User not found in database creating user record...")
+                    await addUserToDb(result.user)
+            }
+            else{
+                await update(ref(database,`users/${result.user.uid}`),{
+                    lastLoginAt:serverTimestamp(),
+                    isOnline:true
+                })
+            }
             return result
         } 
         catch(error){
@@ -184,17 +204,20 @@ export const FirebaseContextProvider = (props) => {
         try{
             const result= await signInWithPopup(firebaseAuth,googleProvider)
             //check if user is new
-            const isNewUser=result._tokenResponse?.isNewUser
-            if(isNewUser){
+            const userExists=await checkUserExistsInDb(result.user.uid)
+            if(!userExists){
+                console.log("New user or incomplete record,creating user...")
                 await addUserToDb(result.user)
             }
             else{
-                //update last login time for existing user
-                await set(ref(database,`users/${result.user.uid}/lastLoginAt`),serverTimestamp())
-                await set(ref(database,`users/${result.user.uid}/isOnline`),true)
+                await update(ref(database,`users/${result.user.uid}`),{
+                    lastLoginAt:serverTimestamp(),
+                    isOnline:true
+                })
             }
             return result
-        } catch(error){
+        } 
+        catch(error){
             console.error("Error signing in with Google:",error)
             throw error
         }
@@ -203,11 +226,14 @@ export const FirebaseContextProvider = (props) => {
     //log out function
     const logout=async()=>{
         try{
-            if (user){
-                await set(ref(database,`users/${user.uid}/isOnline`),false)
+            if(user){
+                await update(ref(database,`users/${user.uid}`),{
+                    isOnline:false
+                })
             }
             await signOut(firebaseAuth)
-        } catch(error){
+        } 
+        catch(error){
             console.error("Error loggin out:",error)
             throw error
         }
@@ -347,10 +373,13 @@ export const FirebaseContextProvider = (props) => {
             if(snapshot.exists()){
                 const messageData=snapshot.val()
                 const updates={}
+
+                //use root ref and correct paths
                 Object.keys(messageData).forEach((messageId)=>{
                     updates[`messages/${messageId}`]=null
                 })
-                await update(ref(database,'messages'),updates)
+                //use root database
+                await update(ref(database),updates)
             }
             console.log("Chat and messages deleted succesfully")
         }
