@@ -403,6 +403,49 @@ export const FirebaseContextProvider = (props) => {
         }
     }
 
+    //anony-chat features
+    const sendAnonymousMessage=async (matchId,messageText)=>{
+        if(!messageText.trim()) return
+        try{
+            const messageData={
+                message:messageText.trim(),
+                chatId:matchId,
+                timeStamp:serverTimestamp(),
+                isDeleted:false,
+                isAnonymous:true,
+            }
+            const messageRef=push(ref(database,'anonymous_messages'))
+            await set(messageRef,messageData)
+        }
+        catch(error){
+            console.error("Error sending anonymous message.",error)
+            throw error
+        }
+    }
+
+    const listenToAnonymousMessages = (matchId, callback) => {
+    if (!matchId) return () => {};
+
+    const msgQuery = query(ref(database, 'anonymous_messages'), orderByChild('chatId'));
+    const unsubscribe = onValue(msgQuery, (snapshot) => {
+        if (snapshot.exists()) {
+            const messages = Object.entries(snapshot.val())
+                .map(([id, msg]) => ({ id, ...msg }))
+                .filter(msg => msg.chatId === matchId)
+                .sort((a, b) => {
+                    const tA = a.timeStamp || 0;
+                    const tB = b.timeStamp || 0;
+                    return tA - tB;
+                });
+            callback(messages);
+        } 
+        else {
+            callback([]);
+        }
+    });
+        return () => off(msgQuery, 'value', unsubscribe);
+    };
+
     const isLoggedIn = user? true : false
     
     return(
@@ -425,9 +468,14 @@ export const FirebaseContextProvider = (props) => {
             //username functions
             checkUserNameExists,
             findUserByUsername,
+
             //delete functions
             deleteChat,
-            deleteMessage
+            deleteMessage,
+
+            //anonymous chat function
+            sendAnonymousMessage,
+            listenToAnonymousMessages,
             }}>
             {props.children}
         </FirebaseContext.Provider>
