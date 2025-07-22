@@ -18,6 +18,9 @@ function WelcomePage(){
     const handleStartChat=()=>{
         navigate('/signin')
     }
+    const handleAnonymousChat=()=>{
+      navigate('/interests')
+    }
     return (
     <Container fluid className="app-container">
       <Row className="justify-content-center align-items-center min-vh-100">
@@ -65,6 +68,14 @@ function WelcomePage(){
                 onClick={handleStartChat}
               >
                 Start Chat
+              </Button>
+              <div><br></br></div>
+              <Button 
+                className="start-button w-100"
+                size="lg"
+                onClick={handleAnonymousChat}
+              >
+              Anonymous Chat👀
               </Button>
             </Card.Body>
           </Card>
