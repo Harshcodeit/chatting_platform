@@ -8,6 +8,9 @@ import { Container, Card, Form, Button, Row, Col, Badge, Dropdown,Modal } from "
 //lucide-react
 import { Search ,Send,MoreVertical,Pin,Phone,Video,Plus,Users} from "lucide-react"
 
+//react-window
+import {FixedSizeList as List} from "react-window"
+
 //firebase
 import { useFirebase } from "../Firebase/Firebase";
 
@@ -176,7 +179,7 @@ function Chat(){
                                 {/* Tabs */}
                                 <div className="d-flex gap-3 justify-content-between align-items-center">
                                     <div className="d-flex gap-2">
-                                        {['All', 'Personal', 'Groups'].map(tab => (
+                                        {['All', 'Personal'].map(tab => (
                                             <button
                                                 key={tab}
                                                 className={`btn btn-sm ${activeTab === tab ? 'btn-primary' : 'btn-outline-secondary'}`}
@@ -276,7 +279,7 @@ function Chat(){
                                             </div>
                                             {selectedUser.isOnline && (
                                                 <div className="position-absolute bottom-0 end-0 bg-success rounded-circle" 
-                                                     style={{ width: '12px', height: '12px', border: '2px solid white' }}></div>
+                                                    style={{ width: '12px', height: '12px', border: '2px solid white' }}></div>
                                             )}
                                         </div>
                                         <div>
@@ -320,54 +323,63 @@ function Chat(){
                                             <div>Start a conversation with {getDisplayName(selectedUser)}</div>
                                         </div>
                                     ) : (
-                                        messages.map((msg, index) => {
-                                            const isOwn = msg.senderId === firebase.user.uid
-                                            const showSender = !isOwn && (index === 0 || messages[index - 1].senderId !== msg.senderId)
-                                            
+                                        <List
+                                          height={window.innerHeight - 250} // adjust based on your header + input heights
+                                          itemCount={messages.length}
+                                          itemSize={100} // approximate height of each message item
+                                          width="100%"
+                                        >
+                                          {({ index, style }) => {
+                                            const msg = messages[index];
+                                            const isOwn = msg.senderId === firebase.user.uid;
+                                            const showSender = !isOwn && (index === 0 || messages[index - 1].senderId !== msg.senderId);
+                                        
                                             return (
-                                                <div key={msg.id} className={`mb-3 d-flex ${isOwn ? 'justify-content-end' : 'justify-content-start'}`}>
-                                                    {!isOwn && (
-                                                        <div className="me-2">
-                                                            <div className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" 
-                                                                 style={{ width: '32px', height: '32px' }}>
-                                                                {(msg.senderName || 'U').charAt(0).toUpperCase()}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    <div className={`max-width-70 ${isOwn ? 'text-end' : ''}`}>
-                                                        {showSender && (
-                                                            <div className="fw-semibold mb-1 small">{msg.senderName}</div>
-                                                        )}
-                                                        <div 
-                                                            className={`p-3 rounded-3 ${isOwn ? 'bg-primary text-white' : 'bg-white'}`}
-                                                            style={{ maxWidth: '70%', display: 'inline-block' }}
-                                                        >
-                                                            {msg.isDeleted? (
-                                                                <i className="text-muted">This message was deleted</i>
-                                                            ) :(
-                                                                <>
-                                                                    {msg.message}
-                                                                    {isOwn && (
-                                                                        <Button
-                                                                            variant="link"
-                                                                            size="sm"
-                                                                            className="text-danger p-0 ms-2"
-                                                                            onClick={()=>firebase.deleteMessage(msg.id)}
-                                                                        >
-                                                                            Delete
-                                                                        </Button>
-                                                                    )}
-                                                                </>
-                                                            )} 
-                                                        </div>
-                                                        <div className="small text-muted mt-1">
-                                                            {formatTime(msg.timestamp)}
-                                                            {isOwn && <span className="ms-1">✓✓</span>}
-                                                        </div>
+                                              <div key={msg.id} style={style} className={`mb-3 d-flex ${isOwn ? 'justify-content-end' : 'justify-content-start'}`}>
+                                                {!isOwn && (
+                                                  <div className="me-2">
+                                                    <div className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" 
+                                                         style={{ width: '32px', height: '32px' }}>
+                                                      {(msg.senderName || 'U').charAt(0).toUpperCase()}
                                                     </div>
-                                                </div>
-                                            )
-                                        })
+                                                  </div>
+                                                )}
+                                                <div className={`max-width-70 ${isOwn ? 'text-end' : ''}`}>
+                                                  {showSender && (
+                                                    <div className="fw-semibold mb-1 small">{msg.senderName}</div>
+                                                  )}
+                                                  <div 
+                                                    className={`p-3 rounded-3 ${isOwn ? 'bg-primary text-white' : 'bg-white'}`}
+                                                    style={{ maxWidth: '70%', display: 'inline-block' }}
+                                                  >
+                                                    {msg.isDeleted ? (
+                                                      <i className="text-muted">This message was deleted</i>
+                                                    ) : (
+                                                      <>
+                                                        {msg.message}
+                                                        {isOwn && (
+                                                          <Button
+                                                            variant="link"
+                                                            size="sm"
+                                                            className="text-danger p-0 ms-2"
+                                                            onClick={() => firebase.deleteMessage(msg.id)}
+                                                          >
+                                                            Delete
+                                                          </Button>
+                                                        )}
+                                                      </>
+                                                    )}
+                                </div>
+          <div className="small text-muted mt-1">
+            {formatTime(msg.timestamp)}
+            {isOwn && <span className="ms-1">✓✓</span>}
+          </div>
+        </div>
+      </div>
+    );
+  }}
+</List>
+
                                     )}
                                     <div ref={messagesEndRef} />
                                 </div>

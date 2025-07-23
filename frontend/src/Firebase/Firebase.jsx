@@ -404,8 +404,8 @@ export const FirebaseContextProvider = (props) => {
     }
 
     //anony-chat features
-    const sendAnonymousMessage=async (matchId,messageText)=>{
-        if(!messageText.trim()) return
+    const sendAnonymousMessage=async (matchId,messageText,anonymousUserId,anonymousDisplayName)=>{
+        if(!messageText.trim() || ! anonymousUserId) return
         try{
             const messageData={
                 message:messageText.trim(),
@@ -413,6 +413,8 @@ export const FirebaseContextProvider = (props) => {
                 timeStamp:serverTimestamp(),
                 isDeleted:false,
                 isAnonymous:true,
+                anonymousUserId:anonymousUserId,
+                anonymousDisplayName:anonymousDisplayName,
             }
             const messageRef=push(ref(database,'anonymous_messages'))
             await set(messageRef,messageData)
@@ -426,16 +428,18 @@ export const FirebaseContextProvider = (props) => {
     const listenToAnonymousMessages = (matchId, callback) => {
     if (!matchId) return () => {};
 
-    const msgQuery = query(ref(database, 'anonymous_messages'), orderByChild('chatId'));
+    const msgQuery = query(
+        ref(database, 'anonymous_messages'),
+        orderByChild('chatId'),
+        equalTo(matchId));
     const unsubscribe = onValue(msgQuery, (snapshot) => {
         if (snapshot.exists()) {
             const messages = Object.entries(snapshot.val())
                 .map(([id, msg]) => ({ id, ...msg }))
-                .filter(msg => msg.chatId === matchId)
                 .sort((a, b) => {
-                    const tA = a.timeStamp || 0;
-                    const tB = b.timeStamp || 0;
-                    return tA - tB;
+                    const timeA = a.timeStamp || 0;
+                    const timeB = b.timeStamp || 0;
+                    return timeA - timeB;
                 });
             callback(messages);
         } 
