@@ -5,6 +5,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import uuid
 from typing import List, Optional, Dict
+import time
 
 class InterestMatcher:
     def __init__(self, service_account_path: str):
@@ -28,6 +29,9 @@ class InterestMatcher:
 
         # In-memory queue: user_id -> (embedding, interests, last_active)
         self.waiting_queue: Dict[str, Dict] = {}
+
+        #Pending-matches queue: user_id ->{'match_id':str,'timestamp':datetime ,'interests':list}
+        self.pending_matches={}
 
         # Similarity threshold for matching
         self.similarity_threshold = 0.5
@@ -119,8 +123,10 @@ class InterestMatcher:
         return common[:5]
 
     def create_match(self, user1_id: str, user2_id: str, similarity_score: float,
-                     common_interests: List[str]) -> str:
-        match_id = str(uuid.uuid4())
+                     common_interests: List[str],match_id=None) -> str:
+        if match_id is None:
+            match_id = str(uuid.uuid4()) #Generate new id when not provided
+
         match_data = {
             'match_id': match_id,
             'user1_id': user1_id,
@@ -151,7 +157,8 @@ class InterestMatcher:
         return match_id
 
     def process_matching_request(self, interests: List[str], user_id: Optional[str] = None) -> Dict:
-        print(f"DEBUG: Process_matching_request called for user_id:{user_id},interests:{interests}")
+        print(f"DEBUG: Process_matching_request called for user_id:{user_id}")
+        print(f"DEBUG: Current pending_matches : {self.pending_matches}")
         try:
             # If user exists, update last_active & status
             if user_id and user_id in self.waiting_queue:
@@ -181,12 +188,33 @@ class InterestMatcher:
             match_result = self.find_match_from_queue(user_id, user_embedding)
 
             if match_result:
-                match_id = self.create_match(
-                    user_id,
-                    match_result['match_user_id'],
-                    match_result['similarity_score'],
-                    match_result['common_interests']
-                )
+                matched_user_id=match_result['match_user_id']
+                print(f"DEBUG: Found match between {user_id} & {matched_user_id}")
+                print(f"DEBUG: Checking if {matched_user_id} in pending matches {matched_user_id in self.pending_matches}")
+
+                #Check if matched user already has a pending match_id
+                if matched_user_id in self.pending_matches:
+                    #use existing match_id from matcheduser
+                    match_id=self.pending_matches[matched_user_id]['match_id']
+                    print(f"DEBUG: Using existing match_id {match_id} for users {user_id} & {matched_user_id}")
+
+                    #delete from pending matches since match is now compplete
+                    del self.pending_matches[matched_user_id]
+
+                    self.create_match(user_id,matched_user_id,match_result['similairty_score'],match_result['common_interests'],match_id)
+
+                else:
+                    #Create new match(generate new match_id)
+                    match_id=self.create_match(user_id,matched_user_id,match_result['similarity_score'],match_result['common_interests'])
+
+                    print(f"DEBUG:Create new match_id {match_id} because {matched_user_id} not in pending matches")
+
+                #Remove both users from waiting queue , since matched
+                if user_id in self.waiting_queue:
+                    del self.waiting_queue[user_id]
+                if matched_user_id in self.waiting_queue:
+                    del self.waiting_queue[matched_user_id]
+                
                 return {
                     'status': 'match_found',
                     'user_id': user_id,
@@ -195,7 +223,14 @@ class InterestMatcher:
                     'common_interests': match_result['common_interests']
                 }
             else:
-                # No match, keep waiting
+                # No match, create a pending match entry
+                match_id=f"match_{int(time.time())}_{user_id}"
+                self.pending_matches[user_id]={
+                    'match_id':match_id,
+                    'timestamp':datetime.now(),
+                    'interests':interests
+                }
+                print(f"DEBUG: No match found ,added {user_id} to pending_matches with match_id {match_id}")
                 return {
                     'status': 'waiting_for_match',
                     'user_id': user_id,
@@ -240,6 +275,7 @@ class InterestMatcher:
         return len(self.waiting_queue)
 
     def cleanup_inactive_users(self):
+        #Remove users from waiting queue who havent been active
         cutoff_time = datetime.now() - timedelta(hours=1)
         inactive_users = []
         # Find inactive users in queue
@@ -254,3 +290,16 @@ class InterestMatcher:
                 self.db.collection(self.USERS_COLLECTION).document(user_id).update({'status': 'offline'})
             except Exception as e:
                 print(f"Error cleaning up inactive user {user_id}: {e}")
+
+    def cleanup_expired_pending_match(self):
+        #Remove pending matches older than 5 minutes
+        current_time=datetime.now()
+        expired_users=[]
+
+        for user_id,match_data in self.pending_matches:
+            if(current_time - match_data['timestamp']).total_seconds() >300:
+                expired_users.append(user_id)
+
+        for user_id in expired_users:
+            del self.pending[user_id]
+            print(f"DEBUG: Clean up expired pending match for user {user_id}")
