@@ -7,12 +7,11 @@ import axios from 'axios';
 const AnonymousChat = () => {
     const location = useLocation();
     const interests = location.state?.interests || [];
-    // Ensure useFirebase provides sendAnonymousMessage and listenToAnonymousMessages.
-    // The 'user' object from useFirebase is for authenticated users and not strictly needed for anonymous chat.
+    
+
     const { sendAnonymousMessage, listenToAnonymousMessages } = useFirebase();
 
     // --- User Session ID (Persistent for the browser session) ---
-    // This will be used as the 'anonymousUserId' for the current user in chat
     const userSessionIdRef = useRef(localStorage.getItem("anon_user_id"));
     if (!userSessionIdRef.current) {
         userSessionIdRef.current = `user_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
@@ -25,7 +24,8 @@ const AnonymousChat = () => {
         const storedDisplayName = localStorage.getItem("anon_display_name");
         if (storedDisplayName) {
             return storedDisplayName;
-        } else {
+        } 
+        else {
             const newDisplayName = `Guest ${Math.floor(Math.random() * 900) + 100}`; // Generates a number between 100 and 999
             localStorage.setItem("anon_display_name", newDisplayName);
             return newDisplayName;

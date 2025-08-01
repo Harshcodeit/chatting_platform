@@ -1,27 +1,27 @@
-import React from "react"
-import { useState,useEffect } from "react"
-import { Container, Card, Button, Row, Col } from "react-bootstrap"
-import { useNavigate } from "react-router-dom"
+import React from "react";
+import { useState, useEffect } from "react";
+import { Container, Card, Button, Row, Col } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
-function WelcomePage(){
-    const [currentDot,setCurrentDot]=useState(0)
-    const navigate=useNavigate()
+function WelcomePage() {
+  const [currentDot, setCurrentDot] = useState(0);
+  const navigate = useNavigate();
 
-    useEffect(()=>{
-        const interval=setInterval(()=>{
-            setCurrentDot((prev)=>(prev+1)%3)
-        },1000)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDot((prev) => (prev + 1) % 3);
+    }, 1000);
 
-        return ()=> clearInterval(interval)
-    },[])
+    return () => clearInterval(interval);
+  }, []);
 
-    const handleStartChat=()=>{
-        navigate('/signin')
-    }
-    const handleAnonymousChat=()=>{
-      navigate('/interests')
-    }
-    return (
+  const handleStartChat = () => {
+    navigate("/signin");
+  };
+  const handleAnonymousChat = () => {
+    navigate("/interests");
+  };
+  return (
     <Container fluid className="app-container">
       <Row className="justify-content-center align-items-center min-vh-100">
         <Col xs={12} sm={10} md={8} lg={6} xl={5}>
@@ -29,12 +29,8 @@ function WelcomePage(){
             <Card.Body className="text-center p-4">
               {/* Chat Icons */}
               <div className="chat-icons mb-4">
-                <div className="chat-bubble primary">
-                  💬
-                </div>
-                <div className="chat-bubble secondary">
-                  🤖
-                </div>
+                <div className="chat-bubble primary">💬</div>
+                <div className="chat-bubble secondary">🤖</div>
                 <div className="floating-dots">
                   <div className="dot"></div>
                   <div className="dot"></div>
@@ -56,26 +52,30 @@ function WelcomePage(){
                 {[0, 1, 2].map((index) => (
                   <div
                     key={index}
-                    className={`progress-dot ${index === currentDot ? 'active' : ''}`}
+                    className={`progress-dot ${
+                      index === currentDot ? "active" : ""
+                    }`}
                   />
                 ))}
               </div>
 
               {/* Start Button */}
-              <Button 
+              <Button
                 className="start-button w-100"
                 size="lg"
                 onClick={handleStartChat}
               >
                 Start Chat
               </Button>
-              <div><br></br></div>
-              <Button 
+              <div>
+                <br></br>
+              </div>
+              <Button
                 className="start-button w-100"
                 size="lg"
                 onClick={handleAnonymousChat}
               >
-              Anonymous Chat👀
+                Anonymous Chat👀
               </Button>
             </Card.Body>
           </Card>
