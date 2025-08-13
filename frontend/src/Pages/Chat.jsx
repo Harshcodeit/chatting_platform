@@ -1,6 +1,6 @@
 import React from "react";
 //hooks
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 //react-bootstrap
 import {
@@ -50,12 +50,20 @@ function Chat() {
 
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
+  const listRef = useRef(null);
 
   //Scroll to bottom when messages change
-  const scrollToBottom = () => {};
+  const scrollToBottom = useCallback(() => {
+    if (listRef.current && messages.length > 0) {
+      listRef.current.scrollToItem(messages.length - 1, "end");
+    }
+  }, [messages.length]);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behaviour: "smooth" });
-  }, [messages]);
+    const scrollTimeout = setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+    return () => clearTimeout(scrollTimeout);
+  }, [messages, scrollToBottom]);
 
   //Listen to users
   useEffect(() => {
@@ -119,6 +127,8 @@ function Chat() {
     try {
       await firebase.sendMessage(selectedChat, message, selectedUser?.uid);
       setMessage("");
+
+      setTimeout(() => scrollToBottom(), 150);
     } catch (error) {
       console.error("Error sending message:", message);
     }
@@ -407,6 +417,7 @@ function Chat() {
                     </div>
                   ) : (
                     <List
+                      ref={listRef}
                       height={window.innerHeight - 250} // adjust based on your header + input heights
                       itemCount={messages.length}
                       itemSize={100} // approximate height of each message item
@@ -493,7 +504,6 @@ function Chat() {
                       }}
                     </List>
                   )}
-                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Message Input */}
